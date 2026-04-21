@@ -1,37 +1,28 @@
-"""
-Module KPIs — Alvin (AlvinDiesel09)
-
-Couvre : US-05 (total clients), US-06 (CA total), US-07 (segments), US-08 (clients à risque).
-"""
 import streamlit as st
+import pandas as pd
 
 
-def render_total_clients(df):
-    """US-05."""
-    # TODO(US-05)
-    raise NotImplementedError
+def compute_total_clients(df: pd.DataFrame, client_column: str = "client_id") -> int:
+    """Retourne le nombre de clients uniques."""
+    # TODO: adapter le nom de la colonne selon le CSV fourni par le PO
+    if client_column in df.columns:
+        return df[client_column].nunique()
+    return len(df)
 
 
-def render_total_revenue(df):
-    """US-06."""
-    # TODO(US-06)
-    raise NotImplementedError
+def render(df: pd.DataFrame) -> None:
+    """Affiche le KPI dans Streamlit."""
+    total = compute_total_clients(df)
+    st.metric(label="Nombre total de clients", value=f"{total:,}")
 
 
-def render_segment_distribution(df):
-    """US-07."""
-    # TODO(US-07)
-    raise NotImplementedError
+if __name__ == "__main__":
+    st.set_page_config(page_title="US-05 — Total clients", layout="wide")
+    st.title("US-05 — Nombre total de clients")
 
-
-def render_risk_clients(df):
-    """US-08."""
-    # TODO(US-08)
-    raise NotImplementedError
-
-
-def render_all(df) -> None:
-    """Vue Dashboard (placeholder)."""
-    st.header("Dashboard")
-    st.info("Module en cours de développement (Alvin).")
-    # TODO: appeler les 4 KPIs dans un st.columns(4)
+    uploaded = st.file_uploader("Importer un CSV", type=["csv"])
+    if uploaded:
+        df = pd.read_csv(uploaded)
+        render(df)
+    else:
+        st.info("Charge un CSV pour voir le KPI.")

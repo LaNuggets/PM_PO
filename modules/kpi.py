@@ -8,7 +8,6 @@ def compute_risk_clients(
     risk_values: tuple = ("high", "élevé"),
 ) -> int:
     """Compte les clients considérés à risque."""
-    # TODO: adapter la colonne et les valeurs selon le CSV réel
     if risk_column not in df.columns:
         return 0
     return int(df[risk_column].isin(risk_values).sum())

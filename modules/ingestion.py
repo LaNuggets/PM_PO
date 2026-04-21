@@ -68,10 +68,99 @@ def preview_data(df):
         st.dataframe(schema, use_container_width=True, hide_index=True)
 
 
+REQUIRED_COLUMNS = ("client_id", "segment", "risk_level", "revenue")
+VALID_RISK_LEVELS = {"low", "medium", "high", "faible", "moyen", "élevé", "eleve"}
+
+
 def check_data_quality(df):
-    """US-03 — Valeurs manquantes / incohérentes."""
-    # TODO(US-03)
-    raise NotImplementedError
+    """US-03 — Détecte valeurs manquantes et incohérences, affiche un rapport.
+
+    Retourne un dict `report` pour pouvoir être testé / réutilisé :
+    - `missing_columns` : colonnes obligatoires absentes
+    - `missing_values` : colonnes → nb de valeurs vides
+    - `duplicates` : nb de client_id dupliqués
+    - `invalid_revenue` : nb de valeurs revenue non numériques ou <= 0
+    - `invalid_risk` : nb de valeurs risk_level hors liste autorisée
+    - `severity` : "ok" | "warning" | "error"
+    """
+    report = {
+        "missing_columns": [c for c in REQUIRED_COLUMNS if c not in df.columns],
+        "missing_values": {},
+        "duplicates": 0,
+        "invalid_revenue": 0,
+        "invalid_risk": 0,
+        "severity": "ok",
+    }
+
+    for col in df.columns:
+        n_missing = int(df[col].isna().sum())
+        if n_missing:
+            report["missing_values"][col] = n_missing
+
+    if "client_id" in df.columns:
+        report["duplicates"] = int(df["client_id"].duplicated().sum())
+
+    if "revenue" in df.columns:
+        numeric = pd.to_numeric(df["revenue"], errors="coerce")
+        report["invalid_revenue"] = int(((numeric.isna()) | (numeric <= 0)).sum())
+
+    if "risk_level" in df.columns:
+        normalized = df["risk_level"].astype(str).str.lower().str.strip()
+        report["invalid_risk"] = int((~normalized.isin(VALID_RISK_LEVELS)).sum())
+
+    if report["missing_columns"] or report["duplicates"]:
+        report["severity"] = "error"
+    elif report["missing_values"] or report["invalid_revenue"] or report["invalid_risk"]:
+        report["severity"] = "warning"
+
+    _render_quality_report(df, report)
+    return report
+
+
+def _render_quality_report(df, report):
+    """Affichage Streamlit du rapport qualité (interne à US-03)."""
+    severity = report["severity"]
+    if severity == "ok":
+        st.success("✅ Qualité des données : aucune anomalie détectée.")
+        return
+
+    if severity == "error":
+        st.error("⛔ Anomalies bloquantes détectées — corrigez le fichier avant exploitation.")
+    else:
+        st.warning("⚠️ Anomalies non bloquantes — analyse possible mais à surveiller.")
+
+    if report["missing_columns"]:
+        st.markdown("**Colonnes obligatoires manquantes :** " + ", ".join(f"`{c}`" for c in report["missing_columns"]))
+
+    summary_rows = []
+    if report["missing_values"]:
+        for col, n in report["missing_values"].items():
+            summary_rows.append({"colonne": col, "type d'anomalie": "valeurs manquantes", "nombre": n})
+    if report["duplicates"]:
+        summary_rows.append({"colonne": "client_id", "type d'anomalie": "doublons", "nombre": report["duplicates"]})
+    if report["invalid_revenue"]:
+        summary_rows.append({"colonne": "revenue", "type d'anomalie": "non numérique ou ≤ 0", "nombre": report["invalid_revenue"]})
+    if report["invalid_risk"]:
+        summary_rows.append({"colonne": "risk_level", "type d'anomalie": "valeur hors référentiel", "nombre": report["invalid_risk"]})
+
+    if summary_rows:
+        st.dataframe(pd.DataFrame(summary_rows), use_container_width=True, hide_index=True)
+
+    with st.expander("Voir les lignes suspectes"):
+        mask = pd.Series(False, index=df.index)
+        if "client_id" in df.columns:
+            mask |= df["client_id"].duplicated(keep=False) | df["client_id"].isna()
+        if "revenue" in df.columns:
+            numeric = pd.to_numeric(df["revenue"], errors="coerce")
+            mask |= numeric.isna() | (numeric <= 0)
+        if "risk_level" in df.columns:
+            normalized = df["risk_level"].astype(str).str.lower().str.strip()
+            mask |= ~normalized.isin(VALID_RISK_LEVELS)
+        suspicious = df[mask]
+        if suspicious.empty:
+            st.caption("Aucune ligne isolable (anomalie au niveau des colonnes globales).")
+        else:
+            st.dataframe(suspicious, use_container_width=True)
 
 
 def handle_invalid_file(error):
@@ -122,6 +211,11 @@ def render() -> None:
         f"Fichier `{st.session_state.get('filename', '')}` chargé : "
         f"**{len(df)} lignes**, **{df.shape[1]} colonnes**."
     )
+
     st.divider()
     st.subheader("Aperçu des données")
     preview_data(df)
+
+    st.divider()
+    st.subheader("Qualité des données")
+    check_data_quality(df)

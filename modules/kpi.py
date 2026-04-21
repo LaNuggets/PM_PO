@@ -9,12 +9,6 @@ def compute_total_clients(df: pd.DataFrame, client_column: str = "client_id") ->
     return len(df)
 
 
-def render(df: pd.DataFrame) -> None:
-    """Affiche le KPI dans Streamlit."""
-    total = compute_total_clients(df)
-    st.metric(label="Nombre total de clients", value=f"{total:,}")
-
-
 def compute_total_revenue(df: pd.DataFrame, revenue_column: str = "revenue") -> float:
     """Retourne la somme du chiffre d'affaires."""
     # TODO: adapter le nom de colonne selon le CSV réel

@@ -20,16 +20,11 @@ def main() -> None:
     if st.sidebar.button("Se déconnecter"):
         auth.logout()
 
-    page = st.sidebar.radio(
-        "Navigation",
-        [
-            "Import & données",
-            "Dashboard",
-            "Recommandations",
-            "Actions",
-            "Admin",
-        ],
-    )
+    pages = ["Import & données", "Dashboard", "Recommandations", "Actions"]
+    if user["role"] == "admin":
+        pages.append("Admin")
+
+    page = st.sidebar.radio("Navigation", pages)
 
     st.title("AIDA — AI Decision Assistant")
 
@@ -51,6 +46,9 @@ def main() -> None:
     elif page == "Actions":
         actions.render()
     elif page == "Admin":
+        if not auth.has_permission(user, "view_audit_log"):
+            st.error("Accès refusé : rôle `admin` requis.")
+            return
         audit.render_admin_view()
 
 

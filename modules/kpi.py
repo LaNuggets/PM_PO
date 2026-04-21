@@ -1,37 +1,37 @@
-"""
-Module KPIs — Alvin (AlvinDiesel09)
-
-Couvre : US-05 (total clients), US-06 (CA total), US-07 (segments), US-08 (clients à risque).
-"""
 import streamlit as st
+import pandas as pd
+import plotly.express as px
 
 
-def render_total_clients(df):
-    """US-05."""
-    # TODO(US-05)
-    raise NotImplementedError
+def compute_segment_distribution(df: pd.DataFrame, segment_column: str = "segment") -> pd.DataFrame:
+    """Retourne un DataFrame segment -> count."""
+    # TODO: adapter le nom de colonne
+    if segment_column not in df.columns:
+        raise KeyError(f"Colonne '{segment_column}' absente.")
+    return (
+        df[segment_column]
+        .value_counts()
+        .reset_index()
+        .rename(columns={"index": segment_column, segment_column: "count"})
+    )
 
 
-def render_total_revenue(df):
-    """US-06."""
-    # TODO(US-06)
-    raise NotImplementedError
+def render(df: pd.DataFrame) -> None:
+    try:
+        dist = compute_segment_distribution(df)
+        fig = px.pie(dist, names=dist.columns[0], values="count", title="Répartition par segment")
+        st.plotly_chart(fig, use_container_width=True)
+    except KeyError as e:
+        st.error(str(e))
 
 
-def render_segment_distribution(df):
-    """US-07."""
-    # TODO(US-07)
-    raise NotImplementedError
+if __name__ == "__main__":
+    st.set_page_config(page_title="US-07 — Segments", layout="wide")
+    st.title("US-07 — Répartition par segment")
 
-
-def render_risk_clients(df):
-    """US-08."""
-    # TODO(US-08)
-    raise NotImplementedError
-
-
-def render_all(df) -> None:
-    """Vue Dashboard (placeholder)."""
-    st.header("Dashboard")
-    st.info("Module en cours de développement (Alvin).")
-    # TODO: appeler les 4 KPIs dans un st.columns(4)
+    uploaded = st.file_uploader("Importer un CSV", type=["csv"])
+    if uploaded:
+        df = pd.read_csv(uploaded)
+        render(df)
+    else:
+        st.info("Charge un CSV pour voir le graphique.")

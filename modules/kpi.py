@@ -1,37 +1,35 @@
-"""
-Module KPIs — Alvin (AlvinDiesel09)
-
-Couvre : US-05 (total clients), US-06 (CA total), US-07 (segments), US-08 (clients à risque).
-"""
 import streamlit as st
+import pandas as pd
 
 
-def render_total_clients(df):
-    """US-05."""
-    # TODO(US-05)
-    raise NotImplementedError
+def compute_total_revenue(df: pd.DataFrame, revenue_column: str = "revenue") -> float:
+    """Retourne la somme du chiffre d'affaires."""
+    # TODO: adapter le nom de colonne selon le CSV réel
+    if revenue_column not in df.columns:
+        raise KeyError(f"Colonne '{revenue_column}' absente du CSV.")
+    return float(df[revenue_column].sum())
 
 
-def render_total_revenue(df):
-    """US-06."""
-    # TODO(US-06)
-    raise NotImplementedError
+def format_currency(value: float, currency: str = "€") -> str:
+    """Formate un montant avec séparateur de milliers."""
+    return f"{value:,.0f} {currency}".replace(",", " ")
 
 
-def render_segment_distribution(df):
-    """US-07."""
-    # TODO(US-07)
-    raise NotImplementedError
+def render(df: pd.DataFrame) -> None:
+    try:
+        total = compute_total_revenue(df)
+        st.metric(label="Chiffre d'affaires total", value=format_currency(total))
+    except KeyError as e:
+        st.error(str(e))
 
 
-def render_risk_clients(df):
-    """US-08."""
-    # TODO(US-08)
-    raise NotImplementedError
+if __name__ == "__main__":
+    st.set_page_config(page_title="US-06 — CA total", layout="wide")
+    st.title("US-06 — Chiffre d'affaires total")
 
-
-def render_all(df) -> None:
-    """Vue Dashboard (placeholder)."""
-    st.header("Dashboard")
-    st.info("Module en cours de développement (Alvin).")
-    # TODO: appeler les 4 KPIs dans un st.columns(4)
+    uploaded = st.file_uploader("Importer un CSV", type=["csv"])
+    if uploaded:
+        df = pd.read_csv(uploaded)
+        render(df)
+    else:
+        st.info("Charge un CSV pour voir le KPI.")

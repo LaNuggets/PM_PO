@@ -1,0 +1,11 @@
+client_id,name,segment,risk_level,revenue
+C001,Martin SA,grand compte,low,45000
+C002,Dupont SARL,PME,high,8500
+C003,Bernard EURL,startup,medium,3200
+C004,Durand SAS,grand compte,low,78000
+C005,Petit SA,PME,high,12000
+C006,Moreau SARL,startup,medium,1800
+C007,Laurent EURL,PME,low,6500
+C008,Simon SAS,grand compte,high,95000
+C009,Michel SARL,PME,medium,4300
+C010,Garcia SA,startup,high,2100

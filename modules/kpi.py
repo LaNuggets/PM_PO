@@ -1,37 +1,37 @@
-"""
-Module KPIs — Alvin (AlvinDiesel09)
-
-Couvre : US-05 (total clients), US-06 (CA total), US-07 (segments), US-08 (clients à risque).
-"""
 import streamlit as st
+import pandas as pd
 
 
-def render_total_clients(df):
-    """US-05."""
-    # TODO(US-05)
-    raise NotImplementedError
+def compute_risk_clients(
+    df: pd.DataFrame,
+    risk_column: str = "risk_level",
+    risk_values: tuple = ("high", "élevé"),
+) -> int:
+    """Compte les clients considérés à risque."""
+    if risk_column not in df.columns:
+        return 0
+    return int(df[risk_column].isin(risk_values).sum())
 
 
-def render_total_revenue(df):
-    """US-06."""
-    # TODO(US-06)
-    raise NotImplementedError
+def render(df: pd.DataFrame) -> None:
+    count = compute_risk_clients(df)
+    st.metric(
+        label="Clients à risque",
+        value=count,
+        delta=None,
+        help="Clients avec un niveau de risque élevé.",
+    )
+    if count > 0:
+        st.warning(f"⚠️ {count} client(s) nécessitent une attention prioritaire.")
 
 
-def render_segment_distribution(df):
-    """US-07."""
-    # TODO(US-07)
-    raise NotImplementedError
+if __name__ == "__main__":
+    st.set_page_config(page_title="US-08 — Clients à risque", layout="wide")
+    st.title("US-08 — Clients à risque")
 
-
-def render_risk_clients(df):
-    """US-08."""
-    # TODO(US-08)
-    raise NotImplementedError
-
-
-def render_all(df) -> None:
-    """Vue Dashboard (placeholder)."""
-    st.header("Dashboard")
-    st.info("Module en cours de développement (Alvin).")
-    # TODO: appeler les 4 KPIs dans un st.columns(4)
+    uploaded = st.file_uploader("Importer un CSV", type=["csv"])
+    if uploaded:
+        df = pd.read_csv(uploaded)
+        render(df)
+    else:
+        st.info("Charge un CSV pour voir le KPI.")

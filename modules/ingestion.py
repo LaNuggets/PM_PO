@@ -15,9 +15,15 @@ def upload_csv():
     uploaded = st.file_uploader(
         "Importer un fichier CSV",
         type=["csv"],
-        help="Déposez le fichier client (UTF-8, séparateur `,`).",
+        help=f"Déposez le fichier client (UTF-8, séparateur `,`, max {MAX_FILE_SIZE_MB} Mo).",
     )
     if uploaded is None:
+        return None
+
+    try:
+        validate_file(uploaded)
+    except FileValidationError as error:
+        handle_invalid_file(error)
         return None
 
     try:
@@ -172,7 +178,10 @@ def handle_invalid_file(error):
     error_type = type(error).__name__
     message = str(error).lower()
 
-    if isinstance(error, UnicodeDecodeError) or "codec" in message or "decode" in message:
+    if isinstance(error, FileValidationError):
+        user_message = str(error)
+        hint = f"Fichier attendu : `.csv` UTF-8, taille ≤ {MAX_FILE_SIZE_MB} Mo, au moins une ligne d'en-tête."
+    elif isinstance(error, UnicodeDecodeError) or "codec" in message or "decode" in message:
         user_message = "Encodage du fichier non supporté."
         hint = "Ré-enregistrez le fichier en **UTF-8** avant de l'importer."
     elif "empty" in message or "no columns" in message:
@@ -189,10 +198,64 @@ def handle_invalid_file(error):
     st.info(f"💡 {hint}")
 
 
+MAX_FILE_SIZE_MB = 10
+ALLOWED_EXTENSIONS = (".csv",)
+
+
+class FileValidationError(Exception):
+    """Erreur métier levée quand un fichier ne passe pas les contrôles d'import."""
+
+
 def validate_file(file):
-    """US-19 — Contrôle taille, extension, encodage."""
-    # TODO(US-19)
-    raise NotImplementedError
+    """US-19 — Contrôle le fichier uploadé avant toute lecture pandas.
+
+    Vérifie : extension, taille, nom (absence de séparateurs chemin), encodage
+    UTF-8 sur un échantillon, présence d'au moins une ligne d'en-tête non vide.
+
+    Lève `FileValidationError` avec un message explicite si le fichier est rejeté.
+    """
+    if file is None:
+        raise FileValidationError("Aucun fichier fourni.")
+
+    name = getattr(file, "name", "") or ""
+    if "/" in name or "\\" in name:
+        raise FileValidationError("Nom de fichier invalide (caractères de chemin interdits).")
+
+    lowered = name.lower()
+    if not any(lowered.endswith(ext) for ext in ALLOWED_EXTENSIONS):
+        raise FileValidationError(
+            f"Extension non autorisée. Extensions acceptées : {', '.join(ALLOWED_EXTENSIONS)}."
+        )
+
+    size_bytes = getattr(file, "size", None)
+    if size_bytes is None:
+        file.seek(0, 2)
+        size_bytes = file.tell()
+        file.seek(0)
+    if size_bytes == 0:
+        raise FileValidationError("Le fichier est vide.")
+    max_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
+    if size_bytes > max_bytes:
+        size_mb = size_bytes / (1024 * 1024)
+        raise FileValidationError(
+            f"Fichier trop volumineux : {size_mb:.1f} Mo (maximum : {MAX_FILE_SIZE_MB} Mo)."
+        )
+
+    head = file.read(4096)
+    file.seek(0)
+    try:
+        decoded = head.decode("utf-8")
+    except UnicodeDecodeError as e:
+        raise FileValidationError("Encodage non supporté : attendu UTF-8.") from e
+
+    if not decoded.strip():
+        raise FileValidationError("Le fichier ne contient pas de ligne d'en-tête exploitable.")
+
+    return {
+        "name": name,
+        "size_mb": round(size_bytes / (1024 * 1024), 2),
+        "encoding": "utf-8",
+    }
 
 
 def render() -> None:

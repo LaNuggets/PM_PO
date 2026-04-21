@@ -3,25 +3,40 @@ Module actions — Cléo (dcleooo)
 
 Couvre : US-14 (créer action), US-15 (statut), US-16 (liste).
 
-Persistance : data/actions.json
+⚠️ Hotfix : ce fichier compose les trois modules réellement implémentés
+(`create_action.py`, `action_status.py`, `actions_list.py`) pour que `app.py`
+accède aux US-14/15/16 via un seul point d'entrée.
 """
+from __future__ import annotations
+
 import streamlit as st
 
-
-def create_action(title, client_id, deadline, owner, recommendation=""):
-    """US-14."""
-    # TODO(US-14)
-    raise NotImplementedError
-
-
-def update_status(action_id, new_status):
-    """US-15."""
-    # TODO(US-15)
-    raise NotImplementedError
+from modules import action_status, actions_list, create_action as _create_action
+from modules.action_status import (  # noqa: F401
+    STATUS_EMOJI,
+    STATUSES,
+    update_status,
+)
+from modules.create_action import (  # noqa: F401
+    create_action,
+    load_actions,
+    save_actions,
+)
 
 
 def render() -> None:
-    """Vue Actions (placeholder)."""
+    """Vue Actions : onglets Créer / Statut / Liste."""
     st.header("Actions")
-    st.info("Module en cours de développement (Cléo).")
-    # TODO(US-14, 15, 16): formulaire création + liste avec filtres
+
+    tab_create, tab_status, tab_list = st.tabs(
+        ["➕ Créer", "🔄 Statuts", "📋 Liste"]
+    )
+
+    with tab_create:
+        _create_action.render()
+
+    with tab_status:
+        action_status.render()
+
+    with tab_list:
+        actions_list.render()

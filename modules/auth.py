@@ -3,31 +3,23 @@ Module authentification et rôles — Aurélien (LaNuggets)
 
 Couvre : US-17 (contrôle d'accès), US-18 (rôles admin/user).
 
-Persistance : data/users.json
+⚠️ Hotfix : ce fichier re-exporte les fonctions réellement implémentées dans
+`access_control.py` (US-17) et `roles.py` (US-18) pour que `app.py` puisse les
+utiliser via `from modules import auth`.
 """
-import streamlit as st
+from __future__ import annotations
 
-
-ROLES = ("admin", "user")
-
-
-def authenticate(username: str, password: str):
-    """US-17 : vérifie les credentials."""
-    # TODO(US-17)
-    raise NotImplementedError
-
-
-def require_auth():
-    """US-17 : bloque l'accès si non authentifié."""
-    # TODO(US-17)
-    raise NotImplementedError
-
-
-def has_permission(user: dict, action: str) -> bool:
-    """US-18 : vérifie si le rôle du user autorise l'action."""
-    # TODO(US-18)
-    raise NotImplementedError
-
-
-def logout() -> None:
-    st.session_state.pop("user", None)
+from modules.access_control import (  # noqa: F401
+    authenticate,
+    hash_password,
+    load_users,
+    login_form,
+    logout,
+    require_auth,
+)
+from modules.roles import (  # noqa: F401
+    PERMISSIONS,
+    ROLES,
+    has_permission,
+    require_role,
+)

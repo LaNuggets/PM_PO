@@ -15,9 +15,10 @@ st.set_page_config(page_title="AIDA — AI Decision Assistant", layout="wide")
 def main() -> None:
     st.sidebar.title("AIDA")
 
-    # TODO (US-17, 18) — activer l'authentification
-    # user = auth.require_auth()
-    # st.sidebar.write(f"Connecté : {user['username']} ({user['role']})")
+    user = auth.require_auth()
+    st.sidebar.write(f"Connecté : **{user['username']}** (`{user['role']}`)")
+    if st.sidebar.button("Se déconnecter"):
+        auth.logout()
 
     page = st.sidebar.radio(
         "Navigation",
